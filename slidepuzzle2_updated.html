@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Improbability Drive Slide Puzzle</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7fa;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      h1 {
+        margin-bottom: 10px;
+        color: #333;
+      }
+      #puzzle-container {
+        position: relative;
+        width: 600px;
+        height: 600px;
+        border: 3px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .tile {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        box-sizing: border-box;
+        border: 1px solid #e0e0e0;
+        background-size: 600px 600px;
+        cursor: pointer;
+        transition: top 0.2s ease, left 0.2s ease;
+      }
+      .tile.blank {
+        background-image: none;
+        cursor: default;
+      }
+      #message {
+        margin-top: 20px;
+        font-size: 18px;
+        color: #2a5d84;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Improbability Drive Slide Puzzle</h1>
+    <div id="puzzle-container"></div>
+    <div id="message"></div>
+    <script>
+      const gridSize = 3;
+      const tileSize = 200;
+      const images = [
+        './whale.png',
+        './flowerpot.png'
+      ];
+      let currentLevel = 0;
+      let state = [];
+      let blankIndex = gridSize * gridSize - 1;
+      const container = document.getElementById('puzzle-container');
+      const messageEl = document.getElementById('message');
+
+      function init() {
+        state = [];
+        for (let i = 0; i < gridSize * gridSize; i++) {
+          state.push(i);
+        }
+        blankIndex = state.length - 1;
+        container.innerHTML = '';
+        for (let i = 0; i < state.length; i++) {
+          const tile = document.createElement('div');
+          tile.classList.add('tile');
+          tile.dataset.index = i;
+          tile.addEventListener('click', () => {
+            const tileValue = parseInt(tile.dataset.index, 10);
+            const currentIndex = state.indexOf(tileValue);
+            moveTile(currentIndex);
+          });
+          container.appendChild(tile);
+        }
+        updateTiles();
+        shuffle();
+      }
+
+      function updateTiles() {
+        const tiles = container.children;
+        for (let cellIndex = 0; cellIndex < state.length; cellIndex++) {
+          const tileValue = state[cellIndex];
+          const row = Math.floor(cellIndex / gridSize);
+          const col = cellIndex % gridSize;
+          const tile = tiles[tileValue];
+          tile.style.top = row * tileSize + 'px';
+          tile.style.left = col * tileSize + 'px';
+          if (tileValue === blankIndex) {
+            tile.classList.add('blank');
+            tile.style.backgroundImage = '';
+          } else {
+            tile.classList.remove('blank');
+            const srcRow = Math.floor(tileValue / gridSize);
+            const srcCol = tileValue % gridSize;
+            tile.style.backgroundImage = `url('${images[currentLevel]}')`;
+            tile.style.backgroundPosition = `-${srcCol * tileSize}px -${srcRow * tileSize}px`;
+          }
+        }
+      }
+
+      function getMovableIndices() {
+        const moves = [];
+        const blankRow = Math.floor(state.indexOf(blankIndex) / gridSize);
+        const blankCol = state.indexOf(blankIndex) % gridSize;
+        const directions = [ [0, 1], [1, 0], [0, -1], [-1, 0] ];
+        for (const [dx, dy] of directions) {
+          const newRow = blankRow + dx;
+          const newCol = blankCol + dy;
+          if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+            const index = newRow * gridSize + newCol;
+            moves.push(index);
+          }
+        }
+        return moves;
+      }
+
+      function shuffle() {
+        let count = 0;
+        const maxShuffle = 200;
+        const shuffleInterval = setInterval(() => {
+          const moves = getMovableIndices();
+          const move = moves[Math.floor(Math.random() * moves.length)];
+          swapTiles(move, state.indexOf(blankIndex));
+          updateTiles();
+          count++;
+          if (count >= maxShuffle) clearInterval(shuffleInterval);
+        }, 5);
+      }
+
+      function swapTiles(i, j) {
+        const temp = state[i];
+        state[i] = state[j];
+        state[j] = temp;
+      }
+
+      function moveTile(index) {
+        const blankPos = state.indexOf(blankIndex);
+        const row = Math.floor(index / gridSize);
+        const col = index % gridSize;
+        const blankRow = Math.floor(blankPos / gridSize);
+        const blankCol = blankPos % gridSize;
+        if (
+          (Math.abs(row - blankRow) === 1 && col === blankCol) ||
+          (Math.abs(col - blankCol) === 1 && row === blankRow)
+        ) {
+          swapTiles(index, blankPos);
+          updateTiles();
+          if (isSolved()) onSolved();
+        }
+      }
+
+      function isSolved() {
+        for (let i = 0; i < state.length - 1; i++) {
+          if (state[i] !== i) return false;
+        }
+        return true;
+      }
+
+      function onSolved() {
+        if (currentLevel === 0) {
+          messageEl.textContent = "Excellent! You've assembled the falling whale. Brace yourself for the next improbable event...";
+          currentLevel = 1;
+          setTimeout(() => {
+            init();
+            messageEl.textContent = '';
+          }, 1500);
+        } else {
+          messageEl.textContent = "Head over to Stevie's Apartment and let's get this party started!";
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
